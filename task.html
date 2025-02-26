@@ -1,0 +1,286 @@
+<html>
+<head>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <style>
+        .dark-mode {
+            --bg-color: #1a202c;
+            --text-color: #f7fafc;
+            --primary-color: #38b2ac;
+            --secondary-color: #2d3748;
+            --button-bg: #38b2ac;
+            --button-text: #1a202c;
+            --task-bg: #2d3748;
+            --task-border: #4a5568;
+        }
+        .light-mode {
+            --bg-color: #f7fafc;
+            --text-color: #1a202c;
+            --primary-color: #3182ce;
+            --secondary-color: #e2e8f0;
+            --button-bg: #3182ce;
+            --button-text: #f7fafc;
+            --task-bg: #ffffff;
+            --task-border: #e2e8f0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+        .primary {
+            color: var(--primary-color);
+        }
+        .secondary {
+            background-color: var(--secondary-color);
+        }
+        .button {
+            background-color: var(--button-bg);
+            color: var(--button-text);
+            transition: all 0.3s ease;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header-bg {
+            background-color: var(--secondary-color);
+            backdrop-filter: blur(10px);
+        }
+        .header-text {
+            color: var(--primary-color);
+        }
+        .toggle-button {
+            background-color: #4a5568;
+            color: #f7fafc;
+        }
+        .task-item {
+            transition: all 0.3s ease;
+            background-color: var(--task-bg);
+            border: 1px solid var(--task-border);
+        }
+        .task-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .modal-content {
+            transform: scale(0.95);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .modal-content.active {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .status-selector {
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .status-selector:hover {
+            background-color: var(--secondary-color);
+        }
+        .status-emoji {
+            font-size: 1.2rem;
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body class="dark-mode min-h-screen">
+    <header class="header-bg p-4 fixed w-full top-0 z-50 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center px-4">
+            <div class="flex items-center space-x-2">
+                <i class='bx bx-check-square text-2xl header-text'></i>
+                <h1 class="text-2xl font-bold header-text">Task Manager</h1>
+            </div>
+            <button id="toggle-theme" class="button px-6 py-2 rounded-full flex items-center space-x-2">
+                <i class='bx bx-sun'></i>
+                <span>Toggle Theme</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="w-full max-w-4xl mx-auto px-4 py-8 mt-20">
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-4xl font-bold primary mb-2">My Tasks</h1>
+                <p class="text-gray-400">Organize your day efficiently</p>
+            </div>
+            <button id="create-task-button" class="button px-6 py-3 rounded-full flex items-center space-x-2">
+                <i class='bx bx-plus'></i>
+                <span>Create Task</span>
+            </button>
+        </div>
+        <div id="task-list" class="space-y-4">
+            <p id="no-tasks-message" class="text-center text-gray-400 py-16 flex flex-col items-center">
+                <i class='bx bx-list-ul text-6xl mb-4'></i>
+                No tasks yet. Create your first task to get started!
+            </p>
+        </div>
+    </div>
+
+    <!-- Task Creation Modal -->
+    <div id="task-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="modal-content bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold dark:text-white">Create New Task</h2>
+                <button id="close-modal" class="text-gray-500 dark:text-gray-300 text-2xl hover:rotate-90 transition-transform">&times;</button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2 dark:text-gray-300">Task Title</label>
+                    <input id="task-title" type="text" placeholder="Enter task title" 
+                           class="w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-primary-color outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2 dark:text-gray-300">Task Description</label>
+                    <textarea id="task-desc" placeholder="Enter task description" rows="4"
+                            class="w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-primary-color outline-none"></textarea>
+                </div>
+                <button id="submit-task" class="button w-full py-3 rounded-lg mt-4 flex items-center justify-center space-x-2">
+                    <i class='bx bx-plus'></i>
+                    <span>Create Task</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const toggleButton = document.getElementById('toggle-theme');
+        const createTaskButton = document.getElementById('create-task-button');
+        const taskModal = document.getElementById('task-modal');
+        const closeModal = document.getElementById('close-modal');
+        const submitTaskButton = document.getElementById('submit-task');
+        const taskList = document.getElementById('task-list');
+        const noTasksMessage = document.getElementById('no-tasks-message');
+        const modalContent = document.querySelector('.modal-content');
+
+        const STATUS_ICONS = {
+            'todo': '⭕',
+            'inprogress': '⏳',
+            'done': '✅'
+        };
+
+        const STATUS_LABELS = {
+            'todo': 'Todo',
+            'inprogress': 'In Progress',
+            'done': 'Done'
+        };
+
+        function createStatusSelector(currentStatus = 'todo') {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'status-selector flex items-center cursor-pointer';
+            
+            const updateStatus = (status) => {
+                const emoji = wrapper.querySelector('.status-emoji');
+                const label = wrapper.querySelector('.status-label');
+                emoji.textContent = STATUS_ICONS[status];
+                label.textContent = STATUS_LABELS[status];
+                wrapper.dataset.status = status;
+            };
+
+            wrapper.innerHTML = `
+                <span class="status-emoji">${STATUS_ICONS[currentStatus]}</span>
+                <span class="status-label dark:text-gray-300">${STATUS_LABELS[currentStatus]}</span>
+            `;
+
+            wrapper.addEventListener('click', () => {
+                const currentStatus = wrapper.dataset.status;
+                const statusKeys = Object.keys(STATUS_ICONS);
+                const currentIndex = statusKeys.indexOf(currentStatus);
+                const nextIndex = (currentIndex + 1) % statusKeys.length;
+                const nextStatus = statusKeys[nextIndex];
+                updateStatus(nextStatus);
+            });
+
+            wrapper.dataset.status = currentStatus;
+            return wrapper;
+        }
+
+        toggleButton.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            document.body.classList.toggle('light-mode');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            document.querySelector('.header-text').style.color = isDarkMode ? '#38b2ac' : '#3182ce';
+            toggleButton.style.backgroundColor = isDarkMode ? '#38b2ac' : '#3182ce';
+            toggleButton.style.color = isDarkMode ? '#1a202c' : '#f7fafc';
+            createTaskButton.style.backgroundColor = isDarkMode ? '#38b2ac' : '#3182ce';
+            createTaskButton.style.color = isDarkMode ? '#1a202c' : '#f7fafc';
+        });
+
+        createTaskButton.addEventListener('click', () => {
+            taskModal.classList.remove('hidden');
+            setTimeout(() => modalContent.classList.add('active'), 10);
+        });
+
+        closeModal.addEventListener('click', () => {
+            modalContent.classList.remove('active');
+            setTimeout(() => taskModal.classList.add('hidden'), 300);
+        });
+
+        submitTaskButton.addEventListener('click', () => {
+            const title = document.getElementById('task-title').value;
+            const desc = document.getElementById('task-desc').value;
+
+            if (title && desc) {
+                const taskItem = document.createElement('div');
+                taskItem.classList.add('task-item', 'p-6', 'rounded-xl', 'shadow-lg', 'w-full');
+
+                taskItem.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex-1">
+                            <h3 class="text-xl font-bold dark:text-white mb-2">${title}</h3>
+                            <p class="dark:text-gray-300 text-gray-600">${desc}</p>
+                        </div>
+                        <button class="delete-task text-gray-400 hover:text-red-500 text-xl transition-colors ml-4">
+                            <i class='bx bx-trash'></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                    </div>
+                `;
+
+                const statusContainer = taskItem.querySelector('.flex.items-center');
+                const statusSelector = createStatusSelector();
+                statusContainer.appendChild(statusSelector);
+
+                taskList.appendChild(taskItem);
+                modalContent.classList.remove('active');
+                setTimeout(() => taskModal.classList.add('hidden'), 300);
+                document.getElementById('task-title').value = '';
+                document.getElementById('task-desc').value = '';
+
+                if (noTasksMessage) {
+                    noTasksMessage.remove();
+                }
+
+                const deleteButton = taskItem.querySelector('.delete-task');
+                deleteButton.addEventListener('click', () => {
+                    taskItem.style.transform = 'translateX(100px)';
+                    taskItem.style.opacity = '0';
+                    setTimeout(() => {
+                        taskItem.remove();
+                        if (taskList.children.length === 0) {
+                            taskList.innerHTML = `
+                                <p id="no-tasks-message" class="text-center text-gray-400 py-16 flex flex-col items-center">
+                                    <i class='bx bx-list-ul text-6xl mb-4'></i>
+                                    No tasks yet. Create your first task to get started!
+                                </p>
+                            `;
+                        }
+                    }, 300);
+                });
+            }
+        });
+
+        // Close modal when clicking outside
+        taskModal.addEventListener('click', (e) => {
+            if (e.target === taskModal) {
+                modalContent.classList.remove('active');
+                setTimeout(() => taskModal.classList.add('hidden'), 300);
+            }
+        });
+    </script>
+</body>
+</html>
