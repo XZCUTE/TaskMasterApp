@@ -1,5 +1,12 @@
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskMaster - Tasks</title>
+    <link rel="icon" type="image/x-icon" href="public/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="public/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="public/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="public/favicon-16x16.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <style>
@@ -46,6 +53,7 @@
         .header-bg {
             background-color: var(--secondary-color);
             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
         .header-text {
             color: var(--primary-color);
@@ -168,6 +176,157 @@
             'done': 'Done'
         };
 
+        // Function to save tasks to cookies
+        function saveTasks() {
+            const tasks = [];
+            const taskElements = document.querySelectorAll('.task-item');
+            
+            taskElements.forEach(task => {
+                const title = task.querySelector('h3').textContent;
+                const description = task.querySelector('p').textContent;
+                const status = task.querySelector('.status-selector').dataset.status;
+                
+                tasks.push({ title, description, status });
+            });
+            
+            // Save to cookie (expires in 30 days)
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + 30);
+            document.cookie = `tasks=${JSON.stringify(tasks)}; expires=${expiryDate.toUTCString()}; path=/; SameSite=Strict`;
+        }
+        
+        // Function to load tasks from cookies
+        function loadTasks() {
+            const cookies = document.cookie.split(';');
+            let tasksData = null;
+            
+            for(let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if(name === 'tasks') {
+                    try {
+                        tasksData = JSON.parse(decodeURIComponent(value));
+                        break;
+                    } catch(e) {
+                        console.error('Failed to parse tasks cookie', e);
+                    }
+                }
+            }
+            
+            if(tasksData && tasksData.length > 0) {
+                // Remove no tasks message
+                if(noTasksMessage) {
+                    noTasksMessage.remove();
+                }
+                
+                // Create task elements
+                tasksData.forEach(task => {
+                    createTaskElement(task.title, task.description, task.status);
+                });
+            }
+        }
+        
+        // Function to create a task element
+        function createTaskElement(title, desc, status = 'todo') {
+            const taskItem = document.createElement('div');
+            taskItem.classList.add('task-item', 'p-6', 'rounded-xl', 'shadow-lg', 'w-full');
+
+            taskItem.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex-1">
+                        <h3 class="text-xl font-bold dark:text-white mb-2">${title}</h3>
+                        <p class="dark:text-gray-300 text-gray-600">${desc}</p>
+                    </div>
+                    <div class="flex items-center">
+                        <button class="share-task text-gray-400 hover:text-blue-500 text-xl transition-colors mr-3">
+                            <i class='bx bx-share-alt'></i>
+                        </button>
+                        <button class="delete-task text-gray-400 hover:text-red-500 text-xl transition-colors">
+                            <i class='bx bx-trash'></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex items-center mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                </div>
+            `;
+
+            const statusContainer = taskItem.querySelector('.flex.items-center');
+            const statusSelector = createStatusSelector(status);
+            statusContainer.appendChild(statusSelector);
+
+            taskList.appendChild(taskItem);
+            
+            // Add event listener to delete button
+            const deleteButton = taskItem.querySelector('.delete-task');
+            deleteButton.addEventListener('click', () => {
+                taskItem.style.transform = 'translateX(100px)';
+                taskItem.style.opacity = '0';
+                setTimeout(() => {
+                    taskItem.remove();
+                    if (taskList.children.length === 0) {
+                        taskList.innerHTML = `
+                            <p id="no-tasks-message" class="text-center text-gray-400 py-16 flex flex-col items-center">
+                                <i class='bx bx-list-ul text-6xl mb-4'></i>
+                                No tasks yet. Create your first task to get started!
+                            </p>
+                        `;
+                    }
+                    saveTasks();
+                }, 300);
+            });
+            
+            // Add event listener to share button
+            const shareButton = taskItem.querySelector('.share-task');
+            shareButton.addEventListener('click', () => {
+                shareTask(title, desc, status);
+            });
+            
+            // Add event listener to status selector for saving on change
+            statusSelector.addEventListener('click', () => {
+                setTimeout(() => saveTasks(), 100); // Save after status changes
+            });
+            
+            return taskItem;
+        }
+        
+        // Function to share a task
+        function shareTask(title, description, status) {
+            const text = `Task: ${title}\nDescription: ${description}\nStatus: ${STATUS_LABELS[status]}`;
+            
+            // Check if Web Share API is supported
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Task from TaskMaster',
+                    text: text,
+                    url: window.location.href
+                })
+                .catch(error => {
+                    console.error('Error sharing task:', error);
+                    fallbackShare(text);
+                });
+            } else {
+                fallbackShare(text);
+            }
+        }
+        
+        // Fallback share function using copy to clipboard
+        function fallbackShare(text) {
+            // Create temporary textarea
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                alert('Task copied to clipboard! You can now paste and share it.');
+            } catch (err) {
+                console.error('Failed to copy task:', err);
+                alert('Unable to copy task to clipboard.');
+            }
+            
+            document.body.removeChild(textarea);
+        }
+
         function createStatusSelector(currentStatus = 'todo') {
             const wrapper = document.createElement('div');
             wrapper.className = 'status-selector flex items-center cursor-pointer';
@@ -192,6 +351,7 @@
                 const nextIndex = (currentIndex + 1) % statusKeys.length;
                 const nextStatus = statusKeys[nextIndex];
                 updateStatus(nextStatus);
+                saveTasks(); // Save when status changes
             });
 
             wrapper.dataset.status = currentStatus;
@@ -224,53 +384,17 @@
             const desc = document.getElementById('task-desc').value;
 
             if (title && desc) {
-                const taskItem = document.createElement('div');
-                taskItem.classList.add('task-item', 'p-6', 'rounded-xl', 'shadow-lg', 'w-full');
-
-                taskItem.innerHTML = `
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="flex-1">
-                            <h3 class="text-xl font-bold dark:text-white mb-2">${title}</h3>
-                            <p class="dark:text-gray-300 text-gray-600">${desc}</p>
-                        </div>
-                        <button class="delete-task text-gray-400 hover:text-red-500 text-xl transition-colors ml-4">
-                            <i class='bx bx-trash'></i>
-                        </button>
-                    </div>
-                    <div class="flex items-center mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-                    </div>
-                `;
-
-                const statusContainer = taskItem.querySelector('.flex.items-center');
-                const statusSelector = createStatusSelector();
-                statusContainer.appendChild(statusSelector);
-
-                taskList.appendChild(taskItem);
+                if (noTasksMessage) {
+                    noTasksMessage.remove();
+                }
+                
+                createTaskElement(title, desc, 'todo');
+                saveTasks(); // Save tasks after adding a new one
+                
                 modalContent.classList.remove('active');
                 setTimeout(() => taskModal.classList.add('hidden'), 300);
                 document.getElementById('task-title').value = '';
                 document.getElementById('task-desc').value = '';
-
-                if (noTasksMessage) {
-                    noTasksMessage.remove();
-                }
-
-                const deleteButton = taskItem.querySelector('.delete-task');
-                deleteButton.addEventListener('click', () => {
-                    taskItem.style.transform = 'translateX(100px)';
-                    taskItem.style.opacity = '0';
-                    setTimeout(() => {
-                        taskItem.remove();
-                        if (taskList.children.length === 0) {
-                            taskList.innerHTML = `
-                                <p id="no-tasks-message" class="text-center text-gray-400 py-16 flex flex-col items-center">
-                                    <i class='bx bx-list-ul text-6xl mb-4'></i>
-                                    No tasks yet. Create your first task to get started!
-                                </p>
-                            `;
-                        }
-                    }, 300);
-                });
             }
         });
 
@@ -281,6 +405,9 @@
                 setTimeout(() => taskModal.classList.add('hidden'), 300);
             }
         });
+        
+        // Load tasks when page loads
+        window.addEventListener('load', loadTasks);
     </script>
 </body>
 </html>

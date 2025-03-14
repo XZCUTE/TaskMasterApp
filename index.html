@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Utilix TaskMaster</title>
+    <link rel="icon" type="image/x-icon" href="public/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="public/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="public/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="public/favicon-16x16.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -118,10 +122,22 @@
                     <span>Toggle Theme</span>
                 </button>
             </div>
-            <button class="md:hidden button p-2 rounded-lg">
+            <button class="md:hidden button p-2 rounded-lg" id="mobile-menu-button" aria-label="Toggle mobile menu">
                 <i class="fas fa-bars"></i>
             </button>
         </nav>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden secondary py-4 px-6">
+            <div class="flex flex-col space-y-4">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#about" class="nav-link">About</a>
+                <a href="#contact" class="nav-link">Contact</a>
+                <button onclick="toggleTheme()" class="button px-4 py-2 rounded-full flex items-center space-x-2">
+                    <i class="fas fa-moon"></i>
+                    <span>Toggle Theme</span>
+                </button>
+            </div>
+        </div>
     </header>
 
     <!-- Hero Section -->
@@ -134,14 +150,9 @@
                 Experience the next generation of task management. Simple, powerful, and designed for modern professionals.
             </p>
             <div class="flex flex-col sm:flex-row justify-center gap-4">
-<button onclick="window.location.href='task.html'" class="button px-8 py-4 rounded-full text-lg font-semibold flex items-center justify-center space-x-2">
-
+                <button onclick="window.location.href='task.html'" class="button px-8 py-4 rounded-full text-lg font-semibold flex items-center justify-center space-x-2">
                     <i class="fas fa-rocket"></i>
                     <span>Get Started Free</span>
-                </button>
-                <button class="px-8 py-4 rounded-full text-lg font-semibold border-2 border-primary hover:bg-opacity-10 hover:bg-primary transition-all duration-300 flex items-center justify-center space-x-2">
-                    <i class="fas fa-play"></i>
-                    <span>Watch Demo</span>
                 </button>
             </div>
         </div>
@@ -188,13 +199,13 @@
     <section class="py-20">
         <div class="container mx-auto px-6 text-center">
             <h2 class="text-4xl font-bold mb-8">Ready to Transform Your Workflow?</h2>
-            <p class="text-xl mb-12 max-w-2xl mx-auto opacity-90">
+            <p class="text-xl mb-8 max-w-2xl mx-auto opacity-90">
                 Join thousands of professionals who have already elevated their productivity with TaskMaster.
             </p>
-            <button class="button px-8 py-4 rounded-full text-lg font-semibold inline-flex items-center space-x-2">
-                <span>Start Your Journey</span>
+            <a href="task.html" class="button px-8 py-4 rounded-full text-lg font-semibold inline-flex items-center space-x-2">
+                <span>Get Started Now</span>
                 <i class="fas fa-arrow-right"></i>
-            </button>
+            </a>
         </div>
     </section>
 
@@ -235,6 +246,12 @@
                 body.classList.add('dark-mode');
             }
         }
+
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
     </script>
 </body>
 </html>
